@@ -87,7 +87,7 @@ glm::vec3 trace(Ray ray, int step)
     if (ray.xindex == 5) //cylinder
     { 
 	if((int)(ray.xpt.y) % 2 == 0) col = glm::vec3(1.0, 0.2, 0.6);
-	}
+    }
 	
     if (ray.xindex == 6) //cone
     {
