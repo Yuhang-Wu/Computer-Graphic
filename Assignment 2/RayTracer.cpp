@@ -14,17 +14,15 @@
 #include <vector>
 #include <glm/glm.hpp>
 #include "SceneObject.h"
-#include "Ray.h"
 #include <GL/glut.h>
-#include "Plane.h"
-#include "TextureBMP.h"
 
+#include "Ray.h"
 #include "Cone.h"
+#include "Plane.h"
 #include "Sphere.h"
 #include "Cylinder.h"
+#include "TextureBMP.h"
 #include "Tetrahedron.h"
-
-
 
 using namespace std;
 
@@ -128,6 +126,7 @@ glm::vec3 trace(Ray ray, int step)
 		 col =  ambientTerm*col;
 	else col =  ambientTerm*col + lDotn*col + specularCol;
 	
+	
 	// -------------------- light2 shadow --------------------
 	Ray shadow2(ray.xpt, normalLight2);
 	shadow2.closestPt(sceneObjects);
@@ -135,7 +134,7 @@ glm::vec3 trace(Ray ray, int step)
 	
 	if ((0 >= l2Dotn) || (shadow2.xindex > -1 && shadow2.xdist < light2Dist))
 		 col =  ambientTerm*col;
-	else col =  ambientTerm*col + l2Dotn*col + specularCol;
+	else col =  ambientTerm*col + l2Dotn*col + specularCol2;
 	colorSum = col;
 	
 	// -------------------- refraction --------------------
@@ -152,17 +151,18 @@ glm::vec3 trace(Ray ray, int step)
 		glm::vec3 refractDir = glm::refract(ray.dir, normalVector, eta);
 		Ray refractRay(ray.xpt, refractDir);
 		refractRay.closestPt(sceneObjects);
-		glm::vec3 normalRefracted = sceneObjects[refractRay.xindex] -> normal(refractRay.xpt);
-		glm::vec3 outRayDir = glm::refract(refractDir, -normalRefracted, 1.0f);
 		
-		Ray outRay(refractRay.xpt, outRayDir);
-		outRay.closestPt(sceneObjects);
-		if(outRay.xindex == -1) return backgroundCol;
-		glm::vec3 refractCol = trace(outRay, step+1);
-		
-		if (ray.xindex == 1) colorSum = refractCol; // refraction
-		else if (ray.xindex == 3)
-			colorSum = colorSum * glm::vec3(0.7) + refractCol* glm::vec3(0.5); // transparent
+		if(refractRay.xindex != -1)
+		{
+			glm::vec3 normalRefracted = sceneObjects[refractRay.xindex] -> normal(refractRay.xpt);
+			glm::vec3 outRayDir = glm::refract(refractDir, -normalRefracted, 1.0f);
+			Ray outRay(refractRay.xpt, outRayDir);
+			glm::vec3 refractCol = trace(outRay, step+1);
+			
+			if (ray.xindex == 1) colorSum = refractCol; // refraction
+			else if (ray.xindex == 3)
+				colorSum = colorSum * glm::vec3(0.7) + refractCol* glm::vec3(0.5); // transparent
+		}
 	}
 	
 	// -------------------- reflect --------------------
@@ -200,7 +200,7 @@ void display()
 		{
 			yp = YMIN + j*cellY;
 			
-			// -------------------- No Anti-Aliasing --------------------
+			//~ // -------------------- No Anti-Aliasing --------------------
 		    //~ glm::vec3 dir(xp+0.5*cellX, yp+0.5*cellY, -EDIST);	//direction of the primary ray
 		    //~ Ray ray = Ray(eye, dir);		//Create a ray originating from the camera in the direction 'dir'
 			//~ ray.normalize();				//Normalize the direction of the ray to a unit vector
