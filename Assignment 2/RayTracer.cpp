@@ -75,6 +75,8 @@ glm::vec3 trace(Ray ray, int step)
 	
     //specularCol for light1 && light2
     glm::vec3 white(1);
+    glm::vec3 gray(0.8);
+    glm::vec3 orange(1, 0.9, 0.8);
     glm::vec3 specularCol(0);
     glm::vec3 specularCol2(0);
     if (rDotv >= 0) specularCol = pow(rDotv, 40) * white;
@@ -121,7 +123,11 @@ glm::vec3 trace(Ray ray, int step)
     float lightDist = glm::length(lightVector);
 	
     if ((0 >= lDotn) || (shadow.xindex > -1 && shadow.xdist < lightDist))
-        col =  ambientTerm*col;
+    {
+	if(shadow.xindex == 3) col =  orange*col*0.65f;
+	else if(shadow.xindex == 1) col = gray*col*0.7f;
+	else col =  ambientTerm*col; 
+    }
     else col =  ambientTerm*col + lDotn*col + specularCol;
 	
     // -------------------- light2 shadow --------------------
@@ -130,7 +136,11 @@ glm::vec3 trace(Ray ray, int step)
     float light2Dist = glm::length(lightVector2);
 	
     if ((0 >= l2Dotn) || (shadow2.xindex > -1 && shadow2.xdist < light2Dist))
-        col =  ambientTerm*col;
+    {
+	if(shadow.xindex == 3) col =  orange*col*0.65f;
+	else if(shadow.xindex == 1) col = gray*col*0.7f;
+	else col =  ambientTerm*col; 
+    }
     else col =  ambientTerm*col + l2Dotn*col + specularCol2;
 	
     colorSum = col;
@@ -174,6 +184,43 @@ glm::vec3 trace(Ray ray, int step)
     return colorSum;
 }
 
+// -------------------- Anti-Aliasing -------------------- 
+glm::vec3 Anti_Alising(float xp, float yp, float cellX, float cellY, glm::vec3 eye)
+{
+	float quaterX = cellX/4;
+	float quaterY = cellY/4;
+	float quater3X = 3 * cellX/4;
+	float quater3Y = 3 * cellY/4;
+	
+	glm::vec3 dir1(xp+quaterX, yp+quaterY, -EDIST);
+	glm::vec3 dir2(xp+quater3X, yp+quaterY, -EDIST);
+	glm::vec3 dir3(xp+quater3X, yp+quater3Y, -EDIST);
+	glm::vec3 dir4(xp+quaterX, yp+quater3Y, -EDIST);
+	
+	Ray ray1 = Ray(eye, dir1);
+	Ray ray2 = Ray(eye, dir2);
+	Ray ray3 = Ray(eye, dir3);
+	Ray ray4 = Ray(eye, dir4);
+		    
+	ray1.normalize();
+	ray2.normalize();
+	ray3.normalize();
+	ray4.normalize();
+		    
+	glm::vec3 col1 = trace (ray1, 1);
+	glm::vec3 col2 = trace (ray2, 1);
+	glm::vec3 col3 = trace (ray3, 1);
+	glm::vec3 col4 = trace (ray4, 1);
+		    
+	float R = (col1.r + col2.r + col3.r + col4.r) / 4;
+	float G = (col1.g + col2.g + col3.g + col4.g) / 4;
+	float B = (col1.b + col2.b + col3.b + col4.b) / 4;
+	
+	glm::vec3 avgCol(R, G, B);
+	
+	return  avgCol;
+}
+
 // -------------------- Diaplay Function -------------------- 
 void display()
 {
@@ -210,30 +257,8 @@ void display()
             //~ glColor3f(col.r, col.g, col.b);
 		    
             // -------------------- Anti-Aliasing -------------------- 
-	    glm::vec3 dir1(xp+quaterX, yp+quaterY, -EDIST);
-            glm::vec3 dir2(xp+quater3X, yp+quaterY, -EDIST);
-            glm::vec3 dir3(xp+quater3X, yp+quater3Y, -EDIST);
-            glm::vec3 dir4(xp+quaterX, yp+quater3Y, -EDIST);
-		     
-            Ray ray1 = Ray(eye, dir1);
-            Ray ray2 = Ray(eye, dir2);
-	    Ray ray3 = Ray(eye, dir3);
-	    Ray ray4 = Ray(eye, dir4);
-		    
-	    ray1.normalize();
-	    ray2.normalize();
-	    ray3.normalize();
-	    ray4.normalize();
-		    
-	    glm::vec3 col1 = trace (ray1, 1);
-	    glm::vec3 col2 = trace (ray2, 1);
-	    glm::vec3 col3 = trace (ray3, 1);
-	    glm::vec3 col4 = trace (ray4, 1);
-		    
-	    float R = (col1.r + col2.r + col3.r + col4.r) / 4;
-	    float G = (col1.g + col2.g + col3.g + col4.g) / 4;
-	    float B = (col1.b + col2.b + col3.b + col4.b) / 4;
-	    glColor3f(R, G, B);
+	    glm::vec3 avgCol = Anti_Alising(xp, yp, cellX, cellY, eye);
+	    glColor3f(avgCol.r, avgCol.g, avgCol.b);
 			
 	    glVertex2f(xp, yp);				//Draw each cell with its color value
 	    glVertex2f(xp+cellX, yp);
